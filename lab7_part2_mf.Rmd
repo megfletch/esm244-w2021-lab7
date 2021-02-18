@@ -15,8 +15,121 @@ library(pdftools)
 library(ggwordcloud)
 ```
 
-```{r}
+```{r, cahce = TRUE}
 # Read in The Hobbit
+hobbit_text <- pdf_text("the-hobbit.pdf")
+
+# To view pages
+hobbit_text_p34 <- hobbit_text[34]
+hobbit_text_p34
+```
+
+```{r}
+hobbit_tidy <- data.frame(hobbit_text) %>% 
+  mutate(text_full = str_split(hobbit_text, pattern = "\\n")) %>% 
+  unnest(text_full) %>% 
+  mutate(text_full = str_trim(text_full))
+```
+
+```{r}
+hobbit_df <- hobbit_tidy %>% 
+  slice(-(1:125)) %>% # to get rid of everthing before Chapter 1
+  mutate(chapter = case_when(
+    str_detect(text_full, pattern = "Chapter") ~ text_full,
+    TRUE ~ NA_character_
+  )) %>% 
+  fill(chapter) %>% # to get all chapters to appear next to page that corresponds with that chapter
+  separate(col = chapter, into = c("ch", "no"), sep = " ") %>% 
+  mutate(chapter = as.numeric(as.roman(no)))# to get chapter number instead of Roman numerals
+```
+
+```{r}
+hobbit_tokens <- hobbit_df %>% 
+  unnest_tokens(word, text_full) %>% 
+  dplyr::select(-hobbit_text) # eliminate 'hobbit_text' df
+
+# Getting the word counts
+hobbit_wordcount <- hobbit_tokens %>% 
+  count(chapter, word)
+```
+
+### Remove all stop_words that exist in hobbit_tokens and get top five words in each chapter
+
+```{r}
+hobbit_nonstop_words <- hobb
+
+nonstop_counts <- hobbit_nonstop_words %>% 
+  count(chapter, word)
+```
+
+```{r}
+top_5_words <- nonstop_counts %>% 
+  group_by(chapter) %>% 
+  arrange(-n) %>% 
+  slice(1:5)
+
+ggplot(data = top_5_words, aes(x = word, y = n)) +
+  geom_col(fill = "blue") +
+  facet_wrap(~chapter, scales = "free") +
+  coord_flip()
+```
+
+```{r}
+# get top 100 words for ch. 1
+ch1_top100 <- nonstop_counts %>% 
+  filter(chapter == 1) %>% 
+  arrange(-n) %>% 
+  slice(1:100)
+
+
+ch1_cloud <- ggplot(data = ch1_top100, aes(label = word)) +
+  geom_text_wordcloud(aes(color = n, size = n)) +
+  scale_size_area(max_size = 6)
+
+ch1_cloud
+```
+
+## Sentiment Analysis
+
+```{r}
+afinn_pos <- get_sentiments("afinn") %>% 
+  filter(value > 2)
+```
+
+
+### With 'afinn'
+
+```{r}
+hobbit_afinn <- hobbit_nonstop_words %>% 
+  inner_join(get_sentiments("afinn"))
+
+
+afinn_counts <- hobbit_afinn %>% 
+  count(chapter, value)
+
+afinn_means <- hobbit_afinn %>% 
+  group_by(chapter) %>% 
+  summarize(mean_afinn = mean(value))
+
+ggplot(data = afinn_means,
+       aes(x = chapter, y = mean_afinn)) +
+  geom_col() +
+  coord_flip()
+```
+
+### Nonw look using the NRC lexicon
+
+```{r}
+hobbit_nrc <- hobbit_nonstop_words %>% 
+  inner_join(get_sentiments("nrc"))
+
+hobbit_nrc_counts <- hobbit_nrc %>% 
+  count(chapter, sentiment)
+
+ggplot(data = hobbit_nrc_counts, aes(x = sentiment, y = n)) +
+  geom_col() +
+  facet_wrap(~chapter) +
+  coord_flip()
 ```
 
 
