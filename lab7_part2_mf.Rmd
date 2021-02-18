@@ -1,0 +1,25 @@
+---
+title: "The Hobbit  Test Analysis"
+author: "Meghan Fletcher"
+date: "2/17/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(tidytext)
+library(textdata)
+library(pdftools)
+library(ggwordcloud)
+```
+
+```{r}
+# Read in The Hobbit
+```
+
+
+
+
+
